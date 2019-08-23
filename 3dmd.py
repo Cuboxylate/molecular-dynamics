@@ -17,9 +17,9 @@ import math
 from datetime import datetime
 import os
 
+
 # the main loop function
 def main(md):
-
     # Set up output files
     timestampString = datetime.now().strftime('%Y-%m-%d.%H:%M:%S')
     os.mkdir(os.getcwd() + "/" + timestampString)
@@ -60,9 +60,9 @@ def main(md):
 
 class MD(object):
     N = 15  # number of particles (integer for loop control)
-    dN = float(N) # number of particles (double for doing maths)
+    dN = float(N)  # number of particles (double for doing maths)
     boxLength = 50.0  # length of 1D box
-    dim = 1.0  # dimensions
+    dim = 3.0  # dimensions
 
     # initialise positions and velocites
     def __init__(self):
@@ -80,11 +80,11 @@ class MD(object):
         # values that change during the simulation
         self.en = 0.0  # potential energy
         self.etot = 0.0  # total energy (pot + kin)
-        self.temp = 5.728  # temperature
+        self.temp = 1.728  # temperature
 
         # lists for storing stuff
-        self.x = []  # coordinates
-        self.xp = []  # previous coordinates
+        self.coords = []  # coordinates
+        self.prev_coords = []  # previous coordinates
         self.v = []  # velocities
         self.f = []  # forces
 
@@ -94,11 +94,8 @@ class MD(object):
         self.temps = []
         self.etots = []
 
-        # initialise the lists to be the correct size
+        # initialise the force list
         for i in range(self.N):
-            self.x.append(0.0)
-            self.xp.append(0.0)
-            self.v.append(0.0)
             self.f.append(0.0)
 
         # initialise the lists to be of the correct size for data storage
@@ -107,23 +104,32 @@ class MD(object):
             self.etots.append(0.0)
         print("#---- Initialising positions and velocities ----")
 
-        sumv = 0.0  # sum of velocities
+        sumv = velocities(0.0, 0.0, 0.0)  # sum of velocities
         sumv2 = 0.0  # sum of velocities squared
 
         # loop over the particles
         for i in range(self.N):
-            self.x[i] = self.lattice_pos(i)  # place particles on a lattice
-            self.v[i] = random.random() - 0.5  # assign velocities uniformly (but randomly) in range [-0.5, 0.5]
-            sumv += self.v[i]  # sum velocities
-            sumv2 += self.v[i] ** 2  # sum squard velocities
+            # coords start in a very simple diagonal in 3D space. I want to focus on
+            # getting the calculations working before a 3D random spacing algorithm
+            position = self.lattice_pos(i)
+            self.coords.append(coordinate(position, position, position))  # place particles on a lattice
 
-        sumv = sumv / self.dN  # velocity of centre of mass
-        sumv2 = sumv2 / self.dN  # mean-squared velocity
+            # assign velocities uniformly (but randomly) in range [-0.5, 0.5]
+            self.v.append(velocities(self.random_v(), self.random_v(), self.random_v()))
+
+            sumv = sumv.plus(self.v[i])  # sum velocities
+            sumv2 += self.v[i].sumv2()  # sum squared velocities
+
+        sumv = sumv.scale(1 / self.dN)  # finish calculating velocity of centre of mass
+        sumv2 = sumv2 / self.dN  # mean-squared velocity (3 dims added together)
         sf = math.sqrt(self.dim * self.temp / sumv2)  # scale factor for velocites to achieve desired temperature
 
         for i in range(0, self.N):
-            self.v[i] = (self.v[i] - sumv) * sf  # scale velocites
-            self.xp[i] = self.x[i] - self.v[i] * self.dt  # set previous positions
+            self.v[i] = self.v[i].minus(sumv).scale(sf)  # scale velocites
+            self.prev_coords[i] = self.coords[i].move_by(self.v[i].scale(-1.0), self.dt) # set previous positions
+
+    def random_v(self):
+        return random.random() - 0.5
 
     # place particles on a lattice
     def lattice_pos(self, i):
@@ -141,7 +147,7 @@ class MD(object):
         # loop (inefficiently) over all pairs of atoms
         for i in range(0, self.N - 1):
             for j in range(i + 1, self.N):
-                xr = self.x[i] - self.x[j]  # distance between atoms i and j
+                xr = self.coords[i] - self.coords[j]  # distance between atoms i and j
 
                 xr -= self.boxLength * round(xr / self.boxLength)  # periodic boundary conditions
 
@@ -164,12 +170,12 @@ class MD(object):
         sumv = 0.0
         sumv2 = 0.0
         for i in range(0, self.N):
-            xx = 2.0 * self.x[i] - self.xp[i] + self.dt * self.dt * self.f[i]  # Verlet algorithm
-            vi = (xx - self.xp[i]) / (2.0 * self.dt)  # velocity
+            xx = 2.0 * self.coords[i] - self.prev_coords[i] + self.dt * self.dt * self.f[i]  # Verlet algorithm
+            vi = (xx - self.prev_coords[i]) / (2.0 * self.dt)  # velocity
             sumv += vi  # velocity centre of mass
             sumv2 += vi ** 2  # total kinetic energy
-            self.xp[i] = self.x[i]  # update previous positions
-            self.x[i] = xx  # update current positions
+            self.prev_coords[i] = self.coords[i]  # update previous positions
+            self.coords[i] = xx  # update current positions
 
         self.temp = sumv2 / (self.dim * self.dN)  # instantaneous temperature
         # store for calculating SD
@@ -185,7 +191,7 @@ class MD(object):
         coordfile.write('%d\n' % self.N)
         coordfile.write('time %10.10f\n' % time)
         for i in range(0, self.N):
-            adjustedCoord = self.adjust_for_box(self.x[i])
+            adjustedCoord = self.adjust_for_box(self.coords[i])
             coordfile.write('C %-8.8f 0.0 0.0\n' % adjustedCoord)
 
     # shift a coordinate to be between 0 and boxLength
@@ -216,6 +222,7 @@ class MD(object):
         efile.write('# Average total energy: %10.2f\n' % aveEtot)
         efile.write('# Standard deviation: %10.2f\n' % sdEtot)
 
+
 class coordinate:
     def __init__(self, x, y, z):
         self.x = x
@@ -224,6 +231,30 @@ class coordinate:
 
     def plus(self, them):
         return coordinate(self.x + them.x, self.y + them.y, self.z + them.z)
+
+    def move_by(self, velocities, dt):
+        return coordinate(self.x + velocities.xv * dt,
+                          self.y + velocities.yv * dt,
+                          self.z + velocities.zv * dt)
+
+
+class velocities:
+    def __init__(self, xv, yv, zv):
+        self.xv = xv
+        self.yv = yv
+        self.zv = zv
+
+    def plus(self, them):
+        return velocities(self.xv + them.xv, self.yv + them.yv, self.zv + them.zv)
+
+    def minus(self, them):
+        return velocities(self.xv - them.xv, self.yv - them.yv, self.zv - them.zv)
+
+    def scale(self, sf):
+        return velocities(self.xv * sf, self.yv * sf, self.zv * sf)
+
+    def sumv2(self):
+        return self.xv ** 2 + self.yv ** 2 + self.zv ** 2
 
 md = MD()
 main(md)
