@@ -19,6 +19,9 @@
 #   (see printcoords() and adjust_for_box()
 #   from line 196)
 #
+# See an example run showing this in
+# boundary_conditions_output
+#
 # Also note that this version will make outputs
 # in timestamped subfolders, so we're not
 # overwriting our files each run. It assumes
@@ -73,9 +76,9 @@ def main(md):
 
 
 class MD(object):
-    N = 30  # number of particles (integer for loop control)
+    N = 15  # number of particles (integer for loop control)
     dN = float(N) # number of particles (double for doing maths)
-    boxLength = 36.0  # length of 1D box
+    boxLength = 50.0  # length of 1D box
     dim = 1.0  # dimensions
 
     # initialise positions and velocites
@@ -94,7 +97,7 @@ class MD(object):
         # values that change during the simulation
         self.en = 0.0  # potential energy
         self.etot = 0.0  # total energy (pot + kin)
-        self.temp = 0.728  # temperature
+        self.temp = 5.728  # temperature
 
         # lists for storing stuff
         self.x = []  # coordinates
@@ -157,14 +160,7 @@ class MD(object):
             for j in range(i + 1, self.N):
                 xr = self.x[i] - self.x[j]  # distance between atoms i and j
 
-                # This assumed all lengths were positive, which they won't be,
-                # since i - j will be -1 * j - i, and both are evaluated
                 xr -= self.boxLength * round(xr / self.boxLength)  # periodic boundary conditions
-
-                # if xr > self.boxLength:
-                #     xr -= (int(xr / self.boxLength) * self.boxLength)
-                # elif xr < -1 * self.boxLength:
-                #     xr += (int(abs(xr) / self.boxLength) * self.boxLength)
 
                 r2 = xr ** 2  # square to compare to cutoff
                 if r2 < self.rc2:  # test cutoff
@@ -209,13 +205,13 @@ class MD(object):
             adjustedCoord = self.adjust_for_box(self.x[i])
             coordfile.write('C %-8.8f 0.0 0.0\n' % adjustedCoord)
 
+    # shift a coordinate to be between 0 and boxLength
     def adjust_for_box(self, coord):
-        if coord > self.boxLength:
-            return coord - (int(coord / self.boxLength) * self.boxLength)
-        elif coord < 0:
-            return coord + (1 + int(abs(coord) / self.boxLength) * self.boxLength)
-        else:
-            return coord
+        adj_coord = coord - self.boxLength * round(coord / self.boxLength)
+        if (adj_coord < 0):
+            adj_coord += self.boxLength
+
+        return adj_coord
 
     # calculate averages, etc and print to file
     def statistics(self, tfile, efile):
