@@ -147,7 +147,9 @@ class MD(object):
         # loop (inefficiently) over all pairs of atoms
         for i in range(0, self.N - 1):
             for j in range(i + 1, self.N):
-                xr = self.coords[i] - self.coords[j]  # distance between atoms i and j
+                xr = self.coords[i].distance_from(self.coords[j])  # distance between atoms i and j
+                if j < i:
+                    xr *= -1 # each pair is hit twice and we want them to have opposite signs
 
                 xr -= self.boxLength * round(xr / self.boxLength)  # periodic boundary conditions
 
@@ -236,6 +238,12 @@ class coordinate:
         return coordinate(self.x + velocities.xv * dt,
                           self.y + velocities.yv * dt,
                           self.z + velocities.zv * dt)
+
+    def distance_from(self, them):
+        x_term = (self.x - them.x) ** 2
+        y_term = (self.y - them.y) ** 2
+        z_term = (self.z - them.z) ** 2
+        return math.sqrt(x_term + y_term + z_term)
 
 
 class velocities:
