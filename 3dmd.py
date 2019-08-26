@@ -85,8 +85,8 @@ class MD(object):
         # lists for storing stuff
         self.coords = []  # coordinates
         self.prev_coords = []  # previous coordinates
-        self.v = []  # velocities
-        self.f = []  # forces
+        self.velocities = []  # velocities
+        self.forces = []  # forces
 
         # store data for averaging
         self.sum_temps = 0.0
@@ -96,7 +96,7 @@ class MD(object):
 
         # initialise the force list
         for i in range(self.N):
-            self.f.append(0.0)
+            self.forces.append(0.0)
 
         # initialise the lists to be of the correct size for data storage
         for i in range(self.tsteps):
@@ -115,18 +115,18 @@ class MD(object):
             self.coords.append(coordinate(position, position, position))  # place particles on a lattice
 
             # assign velocities uniformly (but randomly) in range [-0.5, 0.5]
-            self.v.append(velocities(self.random_v(), self.random_v(), self.random_v()))
+            self.velocities.append(velocities(self.random_v(), self.random_v(), self.random_v()))
 
-            sumv = sumv.plus(self.v[i])  # sum velocities
-            sumv2 += self.v[i].sumv2()  # sum squared velocities
+            sumv = sumv.plus(self.velocities[i])  # sum velocities
+            sumv2 += self.velocities[i].sumv2()  # sum squared velocities
 
         sumv = sumv.scale(1 / self.dN)  # finish calculating velocity of centre of mass
         sumv2 = sumv2 / self.dN  # mean-squared velocity (3 dims added together)
         sf = math.sqrt(self.dim * self.temp / sumv2)  # scale factor for velocites to achieve desired temperature
 
         for i in range(0, self.N):
-            self.v[i] = self.v[i].minus(sumv).scale(sf)  # scale velocites
-            self.prev_coords[i] = self.coords[i].move_by(self.v[i].scale(-1.0), self.dt) # set previous positions
+            self.velocities[i] = self.velocities[i].minus(sumv).scale(sf)  # scale velocites
+            self.prev_coords[i] = self.coords[i].move_by(self.velocities[i].scale(-1.0), self.dt) # set previous positions
 
     def random_v(self):
         return random.random() - 0.5
@@ -140,16 +140,15 @@ class MD(object):
     def force(self):
         print("#---- Calculating forces ----")
         en = 0.0  # (re)set energy to zero
+
         # (re)set forces to zero
         for i in range(self.N):
-            self.f[i] = 0.0
+            self.forces[i] = 0.0
 
         # loop (inefficiently) over all pairs of atoms
         for i in range(0, self.N - 1):
             for j in range(i + 1, self.N):
                 xr = self.coords[i].distance_from(self.coords[j])  # distance between atoms i and j
-                if j < i:
-                    xr *= -1  # each pair is hit twice and we want them to have opposite signs
 
                 xr -= self.boxLength * round(xr / self.boxLength)  # periodic boundary conditions
 
@@ -160,8 +159,8 @@ class MD(object):
                     r6i = r2i ** 3
                     ff = 48.0 * r2i * r6i * (r6i - 0.5)
                     # update forces
-                    self.f[i] += ff * xr
-                    self.f[j] -= ff * xr
+                    self.forces[i] += ff * xr
+                    self.forces[j] -= ff * xr
                     # update potential energy
                     en += 4.0 * r6i * (r6i - 1.0) - self.ecut
         return en
@@ -171,8 +170,8 @@ class MD(object):
         print("#---- Integrating equations of motion ----")
         sumv = 0.0
         sumv2 = 0.0
-        for i in range(0, self.N):
-            new_coords = 2.0 * self.coords[i] - self.prev_coords[i] + self.dt * self.dt * self.f[i]  # Verlet algorithm
+        for i in range(0, self.N): ##todo make forces a 3D object and do it properly here.
+            new_coords = 2.0 * self.coords[i] - self.prev_coords[i] + self.dt * self.dt * self.forces[i]  # Verlet algorithm
             velocity = (new_coords - self.prev_coords[i]) / (2.0 * self.dt)  # velocity
             sumv += velocity  # velocity centre of mass
             sumv2 += velocity ** 2  # total kinetic energy
@@ -239,6 +238,9 @@ class coordinate:
                           self.y + velocities.yv * dt,
                           self.z + velocities.zv * dt)
 
+    def scale(self, sf):
+        return coordinate(self.x * sf, self.y * sf, self.z * sf)
+
     def distance_from(self, them):
         x_term = (self.x - them.x) ** 2
         y_term = (self.y - them.y) ** 2
@@ -263,6 +265,13 @@ class velocities:
 
     def sumv2(self):
         return self.xv ** 2 + self.yv ** 2 + self.zv ** 2
+
+class forces:
+    def __init__(self, xf, yf, zf):
+        self.xf = xf
+        self.yf = yf
+        self.zf = zf
+
 
 md = MD()
 main(md)
