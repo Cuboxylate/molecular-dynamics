@@ -79,7 +79,7 @@ class MD(object):
 
         # values that change during the simulation
         self.en = 0.0  # potential energy
-        self.etot = 0.0  # total energy (pot + kin)
+        self.energy_total = 0.0  # total energy (pot + kin)
         self.temp = 1.728  # temperature
 
         # lists for storing stuff
@@ -89,10 +89,10 @@ class MD(object):
         self.f = []  # forces
 
         # store data for averaging
-        self.sumTemp = 0.0
-        self.sumEtot = 0.0
+        self.sum_temps = 0.0
+        self.sum_energy_totals = 0.0
         self.temps = []
-        self.etots = []
+        self.enery_totals = []
 
         # initialise the force list
         for i in range(self.N):
@@ -101,7 +101,7 @@ class MD(object):
         # initialise the lists to be of the correct size for data storage
         for i in range(self.tsteps):
             self.temps.append(0.0)
-            self.etots.append(0.0)
+            self.enery_totals.append(0.0)
         print("#---- Initialising positions and velocities ----")
 
         sumv = velocities(0.0, 0.0, 0.0)  # sum of velocities
@@ -149,7 +149,7 @@ class MD(object):
             for j in range(i + 1, self.N):
                 xr = self.coords[i].distance_from(self.coords[j])  # distance between atoms i and j
                 if j < i:
-                    xr *= -1 # each pair is hit twice and we want them to have opposite signs
+                    xr *= -1  # each pair is hit twice and we want them to have opposite signs
 
                 xr -= self.boxLength * round(xr / self.boxLength)  # periodic boundary conditions
 
@@ -172,21 +172,21 @@ class MD(object):
         sumv = 0.0
         sumv2 = 0.0
         for i in range(0, self.N):
-            xx = 2.0 * self.coords[i] - self.prev_coords[i] + self.dt * self.dt * self.f[i]  # Verlet algorithm
-            vi = (xx - self.prev_coords[i]) / (2.0 * self.dt)  # velocity
-            sumv += vi  # velocity centre of mass
-            sumv2 += vi ** 2  # total kinetic energy
+            new_coords = 2.0 * self.coords[i] - self.prev_coords[i] + self.dt * self.dt * self.f[i]  # Verlet algorithm
+            velocity = (new_coords - self.prev_coords[i]) / (2.0 * self.dt)  # velocity
+            sumv += velocity  # velocity centre of mass
+            sumv2 += velocity ** 2  # total kinetic energy
             self.prev_coords[i] = self.coords[i]  # update previous positions
-            self.coords[i] = xx  # update current positions
+            self.coords[i] = new_coords  # update current positions
 
         self.temp = sumv2 / (self.dim * self.dN)  # instantaneous temperature
         # store for calculating SD
-        self.sumTemp += self.temp
+        self.sum_temps += self.temp
         self.temps[t] = self.temp
-        self.etot = (en + 0.5 * sumv2) / self.dN  # total energy cper particle
+        self.energy_total = (en + 0.5 * sumv2) / self.dN  # total energy per particle
         # store for calculating SD
-        self.sumEtot += self.etot
-        self.etots[t] = self.etot
+        self.sum_energy_totals += self.energy_total
+        self.enery_totals[t] = self.energy_total
 
     # print coordinates
     def printcoords(self, time, coordfile):
@@ -207,15 +207,15 @@ class MD(object):
     # calculate averages, etc and print to file
     def statistics(self, tfile, efile):
         # averages
-        aveTemp = self.sumTemp / self.dtsteps
-        aveEtot = self.sumEtot / self.dtsteps
+        aveTemp = self.sum_temps / self.dtsteps
+        aveEtot = self.sum_energy_totals / self.dtsteps
 
         # standard deviation
         varTemp = 0.0
         varEtot = 0.0
         for i in range(0, self.tsteps):
             varTemp += (self.temps[i] - aveTemp) ** 2
-            varEtot += (self.etots[i] - aveEtot) ** 2
+            varEtot += (self.enery_totals[i] - aveEtot) ** 2
 
         sdTemp = math.sqrt(varTemp / self.dtsteps)
         sdEtot = math.sqrt(varEtot / self.dtsteps)
