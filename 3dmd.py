@@ -140,13 +140,16 @@ class MD(object):
             for j in range(i + 1, self.N):
                 # absolute distance used for boundary checking and
                 # calculating Lennard-Jones potential
-                xr = self.distance_from(self.coords[i], self.coords[j])
+                # xr = self.distance_from(self.coords[i], self.coords[j])
+
+                # get the closest image of coord j based on box conditions
+                adjusted_j = self.closest_j(i, j)
 
                 # periodic boundary conditions
-                boundary_adjustment = self.boxLength * round(xr / self.boxLength)
-                xr -= boundary_adjustment
+                # boundary_adjustment = self.boxLength * round(xr / self.boxLength)
+                # xr -= boundary_adjustment
 
-                r2 = xr ** 2  # square to compare to cutoff
+                r2 = self.dist_squared(self.coords[i], adjusted_j)  # square to compare to cutoff
                 if r2 < self.rc2:  # test cutoff
                     # compute Lennard-Jones interaction
                     r2i = 1.0 / r2
@@ -154,7 +157,7 @@ class MD(object):
                     ff = 48.0 * r2i * r6i * (r6i - 0.5)
 
                     # update forces
-                    adjusted_j = self.coords[j] - boundary_adjustment
+                    # adjusted_j = self.coords[j] - boundary_adjustment
                     self.forces[i] += ff * (self.coords[i] - adjusted_j)
                     self.forces[j] -= ff * (self.coords[i] - adjusted_j)
 
@@ -162,11 +165,34 @@ class MD(object):
                     en += 4.0 * r6i * (r6i - 1.0) - self.ecut
         return en
 
-    def distance_from(self, a, b):
+    # finds the closest image of particle j to particle i, based on PBC
+    # This is based on the idea that in a periodic box, an image of a particle
+    # repeats every boxLength in each dimension. Se we do a quick search
+    # of them all and return the point that is closest
+    def closest_j(self, i, j):
+        coord_i = self.coords[i]
+        coord_j = self.coords[j]
+
+        min_dist2 = self.dist_squared(coord_i, coord_j)
+        closest = coord_j
+        for i in [-1, 0, 1]:
+            for j in [-1, 0, 1]:
+                for k in [-1, 0, 1]:
+                    adjusted_j = coord_j + np.array([i, j, k]) * self.boxLength
+                    dist2 = self.dist_squared(coord_i, adjusted_j)
+                    if dist2 < min_dist2:
+                        min_dist2 = dist2
+                        closest = adjusted_j
+        return closest
+
+    def dist_squared(self, a, b):
         x_term = (a[0] - b[0]) ** 2
         y_term = (a[1] - b[1]) ** 2
         z_term = (a[2] - b[2]) ** 2
-        return math.sqrt(x_term + y_term + z_term)
+        return x_term + y_term + z_term
+
+    def distance_from(self, a, b):
+        return math.sqrt(self.dist_squared(a, b))
 
     # integrate equations of motion
     def integrate(self, t, en):
@@ -233,6 +259,8 @@ class MD(object):
         tfile.write('# Standard deviation: %10.2f\n' % sdTemp)
         efile.write('# Average total energy: %10.2f\n' % aveEtot)
         efile.write('# Standard deviation: %10.2f\n' % sdEtot)
+
+
 
 
 # class coordinate:
