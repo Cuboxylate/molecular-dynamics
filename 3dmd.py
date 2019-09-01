@@ -1,15 +1,11 @@
 #!/usr/bin/python
 
-###
-# BIOINF703 Sem2 2019, Lab 2
-# Sebastian Dunn, sdun067
-#
-# 3DMD: My attempt at making this a 3D simulation
-#
-#
-#
-#
-###
+"""
+BIOINF703 Sem2 2019, Lab 2
+Sebastian Dunn, sdun067
+
+3DMD: Converting the 1D simulation to 3D
+"""
 
 # import needed modules
 import math
@@ -208,9 +204,9 @@ class MD(object):
     """
     Integrate the equations of motion.
     
-        - Use Verlet algorithm to calculate new coordinates for each particle
-        - Calculate and store the instantaneous temperature and potential
-          energy of the system
+    Use Verlet algorithm to calculate new coordinates for each particle.
+    Calculate and store the instantaneous temperature and potential
+    energy of the system.
           
     """
     def integrate(self, t, en):
@@ -220,7 +216,7 @@ class MD(object):
         sumv2 = 0.0
 
         for i in range(0, self.N):
-            # Verlet algorithm to calculate new coordinates from forces
+            # Verlet algorithm to calculate new coordinates from forces and timestep
             new_coords = (2.0 * self.coords[i]) - self.prev_coords[i] + self.dt * self.dt * self.forces[i]
 
             # derive the velocity from it to calculate temperature and energy
