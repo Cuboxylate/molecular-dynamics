@@ -31,5 +31,5 @@ In this script I extend 1DMD into three dimensions. The major changes I made to 
 4. Modified the forces calculation to use the absolute distance to find the Lennard-Jones potential, then apply it to the distances between the molecules in each dimension separately.
 5. Modified the temperature and potential energy calclations to take 3d into account. 
 
-See an example output og this script in 3dmd_output, which used 100 molecules in a 25x25x25 box. 
+See an example output og this script in 3dmd_output, which used 150 molecules in a 22x22x22 box. 
 

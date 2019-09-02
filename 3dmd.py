@@ -77,9 +77,9 @@ def main(md):
 
 
 class MD(object):
-    N = 100  # number of particles (integer for loop control)
+    N = 150  # number of particles (integer for loop control)
     dN = float(N)  # number of particles (double for doing maths)
-    boxLength = 25.0  # length of 1D box
+    boxLength = 22.0  # length of 1D box
     dim = 3.0  # dimensions
 
     """
