@@ -29,7 +29,7 @@ In this script I extend 1DMD into three dimensions. The major changes I made to 
 2. The initial molecule positions are now randomly placed in the 3D box, with no repetition.
 3. The forces calculation needs to find the closest image of one molecule to another, through periodic boundaries, so I implemented a (not-very-efficient) search for it in `MD.find_closest_particle()`.
 4. Modified the forces calculation to use the absolute distance to find the Lennard-Jones potential, then apply it to the distances between the molecules in each dimension separately.
-5. Modified the temperature and potential energy calclations to take 3d into account. 
+5. Modified the temperature and potential energy calculations to take 3d into account. 
 
-See an example output og this script in 3dmd_output, which used 150 molecules in a 22x22x22 box. 
+See an example output of this script in 3dmd_output, which used 150 molecules in a 22x22x22 box. 
 
