@@ -107,10 +107,12 @@ class MD(object):
         self.x_prev = []  # previous coordinates
         self.forces = []  # forces
 
-        # store data for averaging
+        # data on the temperature and energy
+        self.temp = starting_temp
         self.sum_temp = 0.0
-        self.sum_energy_tot = 0.0
         self.temps = []
+        self.energy_tot = 0.0
+        self.sum_energy_tot = 0.0
         self.energy_tots = []
 
         # initialise the lists to be the correct size
@@ -219,14 +221,14 @@ class MD(object):
             self.x_coords[i] = x_new
 
         # calculate temp and store to calculate standard dev later
-        temp = sumv2 / (self.dim * self.dN)  # instantaneous temperature
-        self.sum_temp += temp
-        self.temps[t] = temp
+        self.temp = sumv2 / (self.dim * self.dN)  # instantaneous temperature
+        self.sum_temp += self.temp
+        self.temps[t] = self.temp
 
         # calculate energy and store to calculate standard dev later
-        energy_tot = (en + 0.5 * sumv2) / self.dN  # total energy per particle
-        self.sum_energy_tot += energy_tot
-        self.energy_tots[t] = energy_tot
+        self.energy_tot = (en + 0.5 * sumv2) / self.dN  # total energy per particle
+        self.sum_energy_tot += self.energy_tot
+        self.energy_tots[t] = self.energy_tot
 
     """
     Print coordinates to file

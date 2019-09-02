@@ -5,6 +5,28 @@ BIOINF703 Sem2 2019, Lab 2
 Sebastian Dunn, sdun067
 
 3DMD: Converting the 1D simulation to 3D
+
+I extended this from 1dmd_bounday_condistions.py.
+
+Major new changes:
+    - Coordinates, forces and velocities are now
+    numpy arrays, which act like vectors with normal
+    operators, e.g +-*/
+    - Original lattice positions are randomly chosen
+    in the box now
+    - Forces calculation:
+        - Accounts for boundary conditions by
+        finding the particle image j with shortest absolute
+        distance to i
+        - Compute Lennard-Jones potential using this
+        absolute distance
+        - Then apply it separately in each dimension
+    - Integration calculation:
+        - Converted naturally to 3D with minimal changes
+        - sumv2 took some experimenting to get right, but
+        I use the sum of each of the axis velocities squared
+    - Some more renaming and tidy up
+
 """
 
 # import needed modules
@@ -64,7 +86,6 @@ class MD(object):
     Initialise positions and velocities. 
     """
     def __init__(self):
-
         # declare the global variables
 
         # Constants
@@ -75,17 +96,21 @@ class MD(object):
         self.rc = self.boxLength / 2  # distance cutoff for computing LJ interactions
         self.rc2 = self.rc ** 2  # distance cutoff squared
         self.ecut = 4.0 * ((self.rc ** -12) - (self.rc ** -6))  # value of LJ potential at r = rc: 4(1/rc^{12} - 1/rc^{6})
-        self.starting_temp = 5.728  # temperature to scale lattice energies to initially
+
+        # Values used to initialise the system
+        starting_temp = 5.728  # temperature to scale lattice energies to initially
+        initial_velocities = np.zeros([self.N, 3])  # Not updated as they are calculated fresh each dt
 
         # lists for storing stuff. All 3 dimensional for x, y, z
         self.coords = np.zeros([self.N, 3])  # coordinates
         self.prev_coords = np.zeros([self.N, 3])  # previous coordinates
         self.forces = np.zeros([self.N, 3])  # forces
-        self.initial_velocities = np.zeros([self.N, 3])  # velocities. Not updated as they are calculated fresh each dt
 
-        # store data for averaging at the end
+        # data on the temperature and energy
+        self.temp = starting_temp
         self.sum_temps = 0.0
         self.temps = np.zeros([self.tsteps])
+        self.energy_total = 0.0
         self.sum_energy_totals = 0.0
         self.energy_totals = np.zeros([self.tsteps])
 
@@ -99,20 +124,20 @@ class MD(object):
             self.coords[i] = self.rand_lattice_pos()  # place particles on a lattice
 
             # assign velocities uniformly (but randomly) in range [-0.5, 0.5]
-            self.initial_velocities[i] = np.random.rand(3) - 0.5
+            initial_velocities[i] = np.random.rand(3) - 0.5
 
-            sumv += self.initial_velocities[i]  # sum velocities
-            sumv2 += np.sum(np.square(self.initial_velocities[i]))  # sum squared velocities
+            sumv += initial_velocities[i]  # sum velocities
+            sumv2 += np.sum(np.square(initial_velocities[i]))  # sum squared velocities
 
         sumv = sumv / self.dN  # finish calculating velocity of centre of mass
         sumv2 = sumv2 / self.dN  # mean-squared velocity (3 dims added together)
 
         # scale factor for velocities to achieve desired temperature
-        sf = math.sqrt(self.dim * self.starting_temp / sumv2)
+        sf = math.sqrt(self.dim * starting_temp / sumv2)
 
         for i in range(0, self.N):
-            self.initial_velocities[i] = (self.initial_velocities[i] - sumv) * sf  # scale velocites
-            self.prev_coords[i] = self.coords[i] - (self.initial_velocities[i] * self.dt)  # set previous positions
+            initial_velocities[i] = (initial_velocities[i] - sumv) * sf  # scale velocites
+            self.prev_coords[i] = self.coords[i] - (initial_velocities[i] * self.dt)  # set previous positions
 
     # sets for initialising lattice positions
     x_positions = set(range(N))
@@ -229,14 +254,14 @@ class MD(object):
             self.coords[i] = new_coords
 
         # calculate temp and store to calculate standard dev later
-        temp = sumv2 / (self.dim * self.dN)  # instantaneous temperature
-        self.sum_temps += temp
-        self.temps[t] = temp
+        self.temp = sumv2 / (self.dim * self.dN)  # instantaneous temperature
+        self.sum_temps += self.temp
+        self.temps[t] = self.temp
 
         # calculate energy and store to calculate standard dev later
-        energy_total = (en + 0.5 * sumv2) / self.dN  # total energy per particle
-        self.sum_energy_totals += energy_total
-        self.energy_totals[t] = energy_total
+        self.energy_total = (en + 0.5 * sumv2) / self.dN  # total energy per particle
+        self.sum_energy_totals += self.energy_total
+        self.energy_totals[t] = self.energy_total
 
     """
     Print coordinates to file

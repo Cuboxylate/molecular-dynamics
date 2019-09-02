@@ -1,7 +1,7 @@
 # molecular-dynamics
 Some simple molecular dynamics simulation scripts.
 
-I was provided with 1dmd.py as part of a lab for BIOINF703, Semester 2, 2019 at the University of Auckland. 
+I was provided with 1dmd.py as part of a lab for BIOINF703, Semester 2, 2019 at the University of Auckland. I've extended on it to create 1dmd_boundary_conditions.py and 3dmd.py.
 
 ## 1dmd.py
 This script produces a simple 1D molecular dynamics simulation output. It follows the steps:
@@ -31,5 +31,5 @@ In this script I extend 1DMD into three dimensions. The major changes I made to 
 4. Modified the forces calculation to use the absolute distance to find the Lennard-Jones potential, then apply it to the distances between the molecules in each dimension separately.
 5. Modified the temperature and potential energy calclations to take 3d into account. 
 
-See an example output og this script in 3dmd_output
+See an example output og this script in 3dmd_output, which used 100 molecules in a 25x25x25 box. 
 
