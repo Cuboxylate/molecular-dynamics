@@ -23,7 +23,7 @@ I also cleaned up the script somewhat, and made each run output its files into a
 
 See an example output of this script in boundary_conditions_output. 
 
-## 3dmd,py
+## 3dmd.py
 In this script I extend 1DMD into three dimensions. The major changes I made to achieve this were:
 1. Coordinates, velocities and forces are all now 3D objects, represented by numpy arrays. 
 2. The initial molecule positions are now randomly placed in the 3D box, with no repetition.
@@ -32,4 +32,7 @@ In this script I extend 1DMD into three dimensions. The major changes I made to 
 5. Modified the temperature and potential energy calculations to take 3d into account. 
 
 See an example output of this script in 3dmd_output, which used 150 molecules in a 22x22x22 box. 
+
+## plot.gnu
+When run with `gnuplot plot.gnu` in a folder with a potential-energy.dat and temperature.dat file, will produce pdf graphs for those files. This was provided to me by the Uni. 
 
